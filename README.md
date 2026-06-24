@@ -1,6 +1,6 @@
 # CampusConnect 🎓
 
-> **A real-time campus social platform** — carpool matching with geospatial search, threaded discussion boards, and live Socket.io updates, powered by MongoDB and Node.js.
+> **A NoSQL ADBMS project** built on MongoDB + Node.js, demonstrating schema validation, geospatial `2dsphere` queries, recursive `$graphLookup` aggregation, atomic updates (`$inc`, `$addToSet`, `$set`), delete patterns, and real-time Socket.io streaming.
 
 [![MongoDB](https://img.shields.io/badge/MongoDB-7.0-47A248?logo=mongodb&logoColor=white)](https://www.mongodb.com/)
 [![Node.js](https://img.shields.io/badge/Node.js-Express-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
@@ -11,47 +11,55 @@
 
 ## 📖 Description
 
-**CampusConnect** is a full-stack NoSQL-powered web application that connects university students through two core features: a **carpool board** with real-time geospatial matching, and **threaded discussion boards** with recursive comment trees — all delivered live via Socket.io.
+**CampusConnect** is a full-stack NoSQL application that demonstrates production MongoDB patterns for an ADBMS deliverable: schema-validated collections, geospatial search, recursive comment threads, atomic counters, soft/hard deletes, and live Socket.io feeds.
 
-The project was built to demonstrate advanced MongoDB concepts: `$nearSphere` geospatial queries on `2dsphere` indexes, recursive `$graphLookup` aggregation pipelines for nested comment threads, polymorphic document schemas (student vs. faculty users), and real-time event broadcasting.
-
-**Who is it for?** Students and developers learning advanced MongoDB and Node.js patterns — geospatial queries, aggregation pipelines, and real-time WebSocket integration.
-
----
-
-## 📑 Table of Contents
-
-1. [Features](#features)
-2. [Project Structure](#project-structure)
-3. [Installation](#installation)
-4. [Usage](#usage)
-5. [API Reference](#api-reference)
-6. [Contributing](#contributing)
-7. [License & Contact](#license--contact)
-
----
-
-## ✨ Features
-
-- 🚗 **Carpool Board** — create and discover campus rides; geospatial search using MongoDB `$nearSphere` (default 5 km radius)
-- 💬 **Threaded Discussions** — post comments with up to 5 levels of nested replies resolved via `$graphLookup`
-- ⚡ **Real-time Updates** — Socket.io broadcasts `carpoolCreated` and `newComment` events to all connected clients instantly
-- 👤 **Polymorphic Users** — single `users` collection supports both `Student` and `Faculty` schemas
-- 🗺️ **Geospatial Indexing** — `2dsphere` index on `startLocation` for fast proximity-based carpool queries
-- 🔄 **Mongoose Population** — `driver` and `passengers` fields auto-populated on all carpool responses
-
----
+It exposes two core surfaces:
+- **`/api/carpools`** RUD routes for creating rides, searching via `$nearSphere`, and marking `Full` when capacity is exhausted.
+- **`/api/discussions`** CRUD routes for threaded comments using `$graphLookup`, plus live `newComment` broadcasts.
 
 ## 🗂️ Project Structure
 
 ```
 CampusConnect/
-├── server.js         # Express + Socket.io server, all REST routes
-├── models.js         # Mongoose schemas: User, Carpool, Comment
-├── campusconnect/    # Frontend HTML/JS client
-├── public/           # Static assets
+├── server.js
+├── models.js
+├── public/index.html
 └── package.json
 ```
+
+## 📑 Table of Contents
+
+1. [Features](#features)
+2. [ADBMS Feature Alignment](#adbms-feature-alignment)
+3. [Installation](#installation)
+4. [Usage](#usage)
+5. [API Reference](#api-reference)
+
+---
+
+## ✨ Features
+
+- 🚗 **Geospatial Carpools** — `2dsphere` index on `routeParams.origin` and `routeParams.destination`; `$near` queries.
+- 💬 **Recursive Discussions** — `$graphLookup` on `comments.parentCommentId` for nested threads.
+- ⚡ **Real-time Socket Streams** — emits `carpoolCreated` and `newComment`.
+- 👤 **Schema Validation** — `$jsonSchema` rejects bad emails, invalid roles, and malformed posts.
+- 🔄 **Atomic Updates** — `$addToSet` skills, `$inc` upvotes, `$set` availability windows, `$pull` passengers.
+- 🗑️ **Delete Patterns** — single `deleteOne`, `deleteMany` date filters, cascade comments + post demo.
+
+---
+
+## 🗺️ ADBMS Feature Alignment
+
+| ADBMS Concept | Implementation | Evidence |
+|---|---|---|
+| Schema Validation | `$jsonSchema` on `users` / `posts` | `Downloads/adbmsfiles/crud_operations.js` |
+| Geospatial `2dsphere` | `carpools.routeParams.origin/destination` | `crud_operations.js` + `Downloads/adbmsfiles/crud_screenshots.html` |
+| `$graphLookup` recursion | Nested comment threads | README examples + screenshots |
+| Atomic `$inc/$addToSet/$set` | Upvotes, skills, availability | README examples + screenshots |
+| Delete patterns | `deleteOne`, `deleteMany`, `$pull` cascade | README examples + screenshots |
+| Real-time Socket.io | `carpoolCreated`, `newComment` sockets | `server.js` + `public/index.html` |
+
+Use the `docs/` directory and extracted screenshots for submission verification.
 
 ---
 
@@ -69,7 +77,7 @@ CampusConnect/
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/AneequeShahid/CampusConnect.git
+git clone https://github.com/ANEEQUESHAHID/CampusConnect.git
 cd CampusConnect
 
 # 2. Install dependencies
@@ -84,7 +92,7 @@ export MONGODB_URI="mongodb://127.0.0.1:27017/campusconnect"
 node server.js
 ```
 
-Open [http://localhost:5001](http://localhost:5001) in your browser.
+Open http://localhost:5001 in your browser.
 
 ---
 
@@ -92,17 +100,15 @@ Open [http://localhost:5001](http://localhost:5001) in your browser.
 
 ### Real-time events (Socket.io)
 
-Connect a client to `http://localhost:5001` and listen for:
-
 ```js
-const socket = io('http://localhost:5001');
+const socket = io("http://localhost:5001");
 
-socket.on('carpoolCreated', (carpool) => {
-  console.log('New ride available:', carpool);
+socket.on("carpoolCreated", (carpool) => {
+  console.log("New ride available:", carpool);
 });
 
-socket.on('newComment', (comment) => {
-  console.log('New comment posted:', comment);
+socket.on("newComment", (comment) => {
+  console.log("New comment posted:", comment);
 });
 ```
 
@@ -112,20 +118,16 @@ socket.on('newComment', (comment) => {
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/api/users` | Create a user (Student or Faculty) |
+| `POST` | `/api/users` | Create a user |
 | `GET` | `/api/users` | List all users |
 | `POST` | `/api/carpools` | Post a new carpool ride |
-| `GET` | `/api/carpools/search?lng=&lat=&maxDistance=` | Find nearby carpools (geospatial) |
+| `GET` | `/api/carpools/search?lng=&lat=&maxDistance=` | Nearby carpools (geospatial) |
 | `POST` | `/api/discussions/comment` | Post a comment or reply |
-| `GET` | `/api/discussions/thread?postId=` | Fetch full recursive comment thread |
+| `GET` | `/api/discussions/thread?postId=` | Recursive comment thread |
 
-### Example: Find nearby carpools
+### Federation README
 
-```bash
-curl "http://localhost:5001/api/carpools/search?lng=73.0479&lat=33.6844&maxDistance=3000"
-```
-
-Returns all carpools within 3 km of the given coordinates, sorted by proximity.
+This README is part of the CampusConnect federation. For cross-references, canonical origin is `ANEEQUESHAHID/CampusConnect`.
 
 ---
 
@@ -141,4 +143,5 @@ Returns all carpools within 3 km of the given coordinates, sorted by proximity.
 
 MIT License — see [LICENSE](LICENSE) for details.
 
-**Aneeque Shahid** · [@AneequeShahid](https://github.com/AneequeShahid) · aneequeshahid495@gmail.com
+**Aneeque Shahid** · [@ANEEQUESHAHID](https://github.com/ANEEQUESHAHID) · aneequeshahid495@gmail.com
+
