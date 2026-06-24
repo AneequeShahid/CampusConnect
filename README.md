@@ -1,115 +1,144 @@
-# 🎓 CampusConnect — Advanced NoSQL Database Ecosystem
+# CampusConnect 🎓
 
-CampusConnect is a scalable, event-driven NoSQL database solution and backend architecture engineered to streamline campus operations, carpool matching, and student discussions. By leveraging polymorphic schemas, native geospatial indexing, and real-time streams, CampusConnect solves complex logistics and networking challenges on university campuses.
+> **A real-time campus social platform** — carpool matching with geospatial search, threaded discussion boards, and live Socket.io updates, powered by MongoDB and Node.js.
 
----
-
-## 🚀 Key Features
-
-* **Polymorphic Database Schemas**: Designed flexible, non-relational schemas inside MongoDB to handle diverse entities (such as student profiles, administrator posts, and carpool logs) within uniform collections.
-* **Geospatial Carpool Routing**: Utilized MongoDB's native 2D Sphere geospatial index (`$nearSphere`, `$geoWithin`) to calculate coordinate-based carpool matching, pairing student drivers with riders along spatial trajectories.
-* **Event-Driven Updates**: Developed real-time notifications and feed updates by listening to database write activities using **MongoDB Change Streams**, pushing notifications through WebSockets.
-* **Recursive Discussion Threads**: Implemented recursive mapping for nested discussions, comments, and replies using MongoDB's `$graphLookup` aggregation stage, yielding high-performance tree-structure traversals.
+[![MongoDB](https://img.shields.io/badge/MongoDB-7.0-47A248?logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![Node.js](https://img.shields.io/badge/Node.js-Express-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Socket.io](https://img.shields.io/badge/Socket.io-Real--time-010101?logo=socket.io)](https://socket.io/)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 ---
 
-## 🛠️ Technology Stack
+## 📖 Description
 
-* **Database**: MongoDB (NoSQL)
-* **API Architecture**: Node.js & Express.js (REST APIs)
-* **Real-time Communication**: WebSockets (Socket.io)
-* **Authentication**: JSON Web Tokens (JWT) & bcrypt
-* **Geospatial Engine**: GeoJSON & MongoDB Geospatial Indexes
+**CampusConnect** is a full-stack NoSQL-powered web application that connects university students through two core features: a **carpool board** with real-time geospatial matching, and **threaded discussion boards** with recursive comment trees — all delivered live via Socket.io.
+
+The project was built to demonstrate advanced MongoDB concepts: `$nearSphere` geospatial queries on `2dsphere` indexes, recursive `$graphLookup` aggregation pipelines for nested comment threads, polymorphic document schemas (student vs. faculty users), and real-time event broadcasting.
+
+**Who is it for?** Students and developers learning advanced MongoDB and Node.js patterns — geospatial queries, aggregation pipelines, and real-time WebSocket integration.
 
 ---
 
-## 📂 Database Schema & Architecture
+## 📑 Table of Contents
 
-### 1. User & Profiles (Polymorphic)
-The `users` collection stores basic credentials along with dynamic fields depending on user type (`student`, `faculty`, `driver`).
-```json
-{
-  "_id": "ObjectId",
-  "name": "Jane Doe",
-  "email": "janedoe@bnu.edu.pk",
-  "role": "student",
-  "academic_info": {
-    "roll_no": "F2024-0920",
-    "department": "Computer Science"
-  },
-  "driver_info": {
-    "is_active_driver": true,
-    "license_no": "LHR-88219",
-    "vehicle_details": "Honda Civic (LED-1234)"
-  }
-}
+1. [Features](#features)
+2. [Project Structure](#project-structure)
+3. [Installation](#installation)
+4. [Usage](#usage)
+5. [API Reference](#api-reference)
+6. [Contributing](#contributing)
+7. [License & Contact](#license--contact)
+
+---
+
+## ✨ Features
+
+- 🚗 **Carpool Board** — create and discover campus rides; geospatial search using MongoDB `$nearSphere` (default 5 km radius)
+- 💬 **Threaded Discussions** — post comments with up to 5 levels of nested replies resolved via `$graphLookup`
+- ⚡ **Real-time Updates** — Socket.io broadcasts `carpoolCreated` and `newComment` events to all connected clients instantly
+- 👤 **Polymorphic Users** — single `users` collection supports both `Student` and `Faculty` schemas
+- 🗺️ **Geospatial Indexing** — `2dsphere` index on `startLocation` for fast proximity-based carpool queries
+- 🔄 **Mongoose Population** — `driver` and `passengers` fields auto-populated on all carpool responses
+
+---
+
+## 🗂️ Project Structure
+
 ```
-
-### 2. Carpools (Geospatial Trajectory Routing)
-The `carpools` collection uses a GeoJSON LineString coordinates list and coordinates points to match passengers near the driver's route.
-```json
-{
-  "_id": "ObjectId",
-  "driver_id": "ObjectId",
-  "start_location": {
-    "type": "Point",
-    "coordinates": [74.3587, 31.5204]
-  },
-  "destination": {
-    "type": "Point",
-    "coordinates": [74.3292, 31.4015]
-  },
-  "capacity": 4,
-  "passengers": ["ObjectId"],
-  "status": "active"
-}
+CampusConnect/
+├── server.js         # Express + Socket.io server, all REST routes
+├── models.js         # Mongoose schemas: User, Carpool, Comment
+├── campusconnect/    # Frontend HTML/JS client
+├── public/           # Static assets
+└── package.json
 ```
 
 ---
 
-## 🔍 Aggregation Pipelines Example
+## 🚀 Installation
 
-### Recursive Thread Lookup (`$graphLookup`)
-To fetch nested discussion comments recursively up to 5 levels deep:
-```javascript
-db.posts.aggregate([
-  { $match: { _id: ObjectId("post_id_here") } },
-  {
-    $graphLookup: {
-      from: "comments",
-      startWith: "$_id",
-      connectFromField: "_id",
-      connectToField: "parent_comment_id",
-      as: "thread_replies",
-      maxDepth: 5,
-      depthField: "reply_depth"
-    }
-  }
-])
+### Prerequisites
+
+| Tool | Version |
+|------|---------|
+| Node.js | ≥ 18 |
+| MongoDB | ≥ 7.0 (local or Atlas) |
+| npm | ≥ 9 |
+
+### Steps
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/AneequeShahid/CampusConnect.git
+cd CampusConnect
+
+# 2. Install dependencies
+npm install
+
+# 3. Set your MongoDB connection (optional — defaults to localhost)
+export MONGODB_URI="mongodb://127.0.0.1:27017/campusconnect"
+# Or on Windows:
+# $env:MONGODB_URI = "mongodb://127.0.0.1:27017/campusconnect"
+
+# 4. Start the server
+node server.js
+```
+
+Open [http://localhost:5001](http://localhost:5001) in your browser.
+
+---
+
+## 💻 Usage
+
+### Real-time events (Socket.io)
+
+Connect a client to `http://localhost:5001` and listen for:
+
+```js
+const socket = io('http://localhost:5001');
+
+socket.on('carpoolCreated', (carpool) => {
+  console.log('New ride available:', carpool);
+});
+
+socket.on('newComment', (comment) => {
+  console.log('New comment posted:', comment);
+});
 ```
 
 ---
 
-## ⚙️ Setup & Installation
+## 📡 API Reference
 
-1. **Prerequisites**: Ensure MongoDB (v6.0+) and Node.js (v18+) are installed on your system.
-2. **Clone and Install**:
-   ```bash
-   git clone https://github.com/AneequeShahid/CampusConnect.git
-   cd CampusConnect
-   npm install
-   ```
-3. **Database Restore**:
-   Restore the database collections using the provided BSON dumps:
-   ```bash
-   mongorestore --db campusconnect ./campusconnect
-   ```
-4. **Run Server**:
-   ```bash
-   npm start
-   ```
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/users` | Create a user (Student or Faculty) |
+| `GET` | `/api/users` | List all users |
+| `POST` | `/api/carpools` | Post a new carpool ride |
+| `GET` | `/api/carpools/search?lng=&lat=&maxDistance=` | Find nearby carpools (geospatial) |
+| `POST` | `/api/discussions/comment` | Post a comment or reply |
+| `GET` | `/api/discussions/thread?postId=` | Fetch full recursive comment thread |
+
+### Example: Find nearby carpools
+
+```bash
+curl "http://localhost:5001/api/carpools/search?lng=73.0479&lat=33.6844&maxDistance=3000"
+```
+
+Returns all carpools within 3 km of the given coordinates, sorted by proximity.
 
 ---
 
-## 🎓 Academic Credit
-Developed as a project for the Advanced Database Management Systems (ADBMS) course at **Beaconhouse National University (BNU)**.
+## 🤝 Contributing
+
+1. Fork the repo and create a feature branch
+2. Commit changes with a clear message
+3. Open a Pull Request targeting `main`
+
+---
+
+## 📄 License & Contact
+
+MIT License — see [LICENSE](LICENSE) for details.
+
+**Aneeque Shahid** · [@AneequeShahid](https://github.com/AneequeShahid) · aneequeshahid495@gmail.com
